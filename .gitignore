@@ -17,6 +17,11 @@ FUTURE_COREY.md
 # deleted the file once), and docs/ is what GitHub Pages serves.
 DATA-PULL-METHOD.md
 
+# Raw research output: the private-channel sweeps and the scripts that made
+# them. Names both private channels and their IDs, and holds per-person
+# activity evidence that must never ship. Local only.
+research/
+
 # Superseded build output location; the published build now goes to docs/.
 dist/
 
