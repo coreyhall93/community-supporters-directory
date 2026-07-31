@@ -1,0 +1,32 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "community-supporters/supporters",
+	"version": "1.0.0",
+	"title": "Community Supporters Directory",
+	"category": "widgets",
+	"icon": "groups",
+	"description": "Display the Community Event & Program Supporters directory from Airtable as a card grid or table.",
+	"keywords": [ "airtable", "supporters", "community", "events" ],
+	"textdomain": "community-supporters",
+	"supports": {
+		"html": false,
+		"align": [ "wide", "full" ]
+	},
+	"attributes": {
+		"layout": { "type": "string", "default": "grid" },
+		"columns": { "type": "number", "default": 3 },
+		"limit": { "type": "number", "default": 0 },
+		"country": { "type": "string", "default": "" },
+		"language": { "type": "string", "default": "" },
+		"search": { "type": "string", "default": "" },
+		"fields": { "type": "string", "default": "" },
+		"view": { "type": "string", "default": "" },
+		"photos": { "type": "boolean", "default": true },
+		"photoSize": { "type": "number", "default": 116 },
+		"filters": { "type": "boolean", "default": true }
+	},
+	"editorScript": "community-supporters-block",
+	"style": "community-supporters",
+	"editorStyle": "community-supporters"
+}

@@ -1,0 +1,440 @@
+/**
+ * Community Supporters Directory front-end styles.
+ *
+ * Visually aligned with the Education Student Stories plugin so both read as
+ * part of the same site design (shared palette, card treatment, and chips).
+ * Prefixed with .comsup- to avoid clashing with theme styles.
+ */
+
+.comsup-supporters-wrap,
+.comsup-supporters {
+	--comsup-primary: #3858e9;
+	--comsup-primary-600: #213fd4;
+	--comsup-accent: #7c3aed;
+	--comsup-navy: #10182b;
+	--comsup-ink: #1e293b;
+	--comsup-muted: #64748b;
+	--comsup-line: #e5e9f2;
+	--comsup-surface: #ffffff;
+	--comsup-surface-2: #f4f6fb;
+	--comsup-radius: 14px;
+	--comsup-columns: 3;
+
+	box-sizing: border-box;
+	margin: 1.5em 0;
+	color: var(--comsup-ink);
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.comsup-supporters-wrap *,
+.comsup-supporters-wrap *::before,
+.comsup-supporters-wrap *::after {
+	box-sizing: border-box;
+}
+
+.comsup-supporters-wrap [hidden] {
+	display: none !important;
+}
+
+/* ---------- Country map (Leaflet, matched to Education Programs Map) ---------- */
+.comsup-map {
+	margin: 0 0 1.5rem;
+}
+
+.comsup-map__canvas {
+	width: 100%;
+	border: 1px solid var(--comsup-line);
+	border-radius: var(--comsup-radius);
+	box-shadow: 0 1px 2px rgba(16, 24, 43, 0.04), 0 1px 3px rgba(16, 24, 43, 0.06);
+	z-index: 0;
+}
+
+/* Leaflet popup content, styled to match the site cards. */
+.comsup-map .leaflet-popup-content {
+	font-family: inherit;
+	font-size: 13px;
+	line-height: 1.6;
+	color: var(--comsup-ink);
+}
+
+.comsup-map .leaflet-popup-content strong {
+	display: block;
+	font-size: 14px;
+	color: var(--comsup-primary);
+	border-bottom: 1px solid var(--comsup-line);
+	padding-bottom: 4px;
+	margin-bottom: 4px;
+}
+
+/* ---------- Filter bar ---------- */
+.comsup-filters {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem 1rem;
+	margin: 0 auto 1.5rem;
+	max-width: 60rem;
+}
+
+.comsup-filters__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	min-width: 160px;
+}
+
+.comsup-filters__label {
+	font-size: 0.72rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--comsup-muted);
+}
+
+.comsup-filters__select {
+	padding: 0.5rem 0.9rem;
+	border: 1px solid var(--comsup-line);
+	border-radius: 999px;
+	background: var(--comsup-surface);
+	color: var(--comsup-ink);
+	font-size: 0.9rem;
+	font-weight: 600;
+	font-family: inherit;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.comsup-filters__select:hover {
+	border-color: var(--comsup-primary);
+}
+
+.comsup-filters__select:focus {
+	outline: none;
+	border-color: var(--comsup-primary);
+	box-shadow: 0 0 0 3px rgba(56, 88, 233, 0.15);
+}
+
+.comsup-supporters__noresults {
+	text-align: center;
+	color: var(--comsup-muted);
+	margin: 1.5rem 0 0;
+}
+
+/* ---------- Grid ---------- */
+.comsup-supporters--grid {
+	display: grid;
+	grid-template-columns: repeat(var(--comsup-columns), minmax(0, 1fr));
+	gap: 1.1rem;
+}
+
+.comsup-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.6rem;
+	padding: 1.5rem 1.25rem 1.25rem;
+	border: 1px solid var(--comsup-line);
+	border-radius: var(--comsup-radius);
+	background: var(--comsup-surface);
+	box-shadow: 0 1px 2px rgba(16, 24, 43, 0.04);
+	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.comsup-card:hover {
+	transform: translateY(-3px);
+	box-shadow: 0 12px 28px rgba(16, 24, 43, 0.1);
+	border-color: #d5ddf5;
+}
+
+/* Sponsored supporters get the subtle highlight the ESS "medal" cards use. */
+.comsup-card--sponsored {
+	border-color: rgba(56, 88, 233, 0.35);
+	background: linear-gradient(180deg, #f7f9ff 0%, #ffffff 55%);
+}
+
+/*
+ * Where subgrid is supported, lay each card onto shared row tracks so the same
+ * detail field (Country, Languages, sponsor, link…) sits at the same level in
+ * every card of a row. Falls back to the plain flex column above otherwise.
+ */
+@supports (grid-template-rows: subgrid) {
+	.comsup-supporters--grid {
+		grid-auto-rows: min-content;
+	}
+
+	.comsup-card {
+		display: grid;
+		grid-template-rows: subgrid;
+		grid-row: span var(--comsup-rows, 1);
+		justify-items: center;
+		row-gap: 0.6rem;
+	}
+
+	.comsup-card > * {
+		align-self: start;
+		margin: 0;
+	}
+
+	/* Empty slots must stay in flow so they occupy their subgrid track. */
+	.comsup-card__row--empty {
+		display: block;
+		min-height: 0;
+	}
+}
+
+/* In the flex fallback there are no shared tracks, so drop empty slots. */
+.comsup-card__row--empty {
+	display: none;
+}
+
+.comsup-card__photo {
+	line-height: 0;
+}
+
+.comsup-photo {
+	border-radius: 50%;
+	object-fit: cover;
+	background: var(--comsup-surface-2);
+	display: block;
+	max-width: 100%;
+	border: 3px solid #fff;
+	box-shadow: 0 0 0 1px var(--comsup-line);
+}
+
+.comsup-photo--placeholder {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	font-weight: 700;
+	line-height: 1;
+	text-transform: uppercase;
+	background: linear-gradient(135deg, var(--comsup-primary), var(--comsup-accent));
+}
+
+.comsup-card__title {
+	margin: 0.85rem 0 0.15rem;
+	font-size: 1.12rem;
+	font-weight: 700;
+	line-height: 1.25;
+	color: var(--comsup-navy);
+}
+
+.comsup-card__row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: center;
+	gap: 0.4rem;
+	font-size: 0.85rem;
+}
+
+/* Tag rows (Languages, Sponsor…) stack the label above its pills. */
+.comsup-card__row--tags {
+	flex-direction: column;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.comsup-card__label {
+	color: var(--comsup-muted);
+	font-size: 0.68rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.comsup-card__value {
+	color: var(--comsup-ink);
+}
+
+.comsup-card__row--link {
+	margin-top: 0.15rem;
+}
+
+/* ---------- Badges & tags ---------- */
+/* Country badge — soft primary pill. */
+.comsup-badge {
+	display: inline-block;
+	padding: 0.15rem 0.6rem;
+	border-radius: 999px;
+	background: rgba(56, 88, 233, 0.1);
+	font-size: 0.72rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--comsup-primary-600);
+}
+
+.comsup-tags {
+	display: inline-flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.35rem;
+}
+
+.comsup-tag {
+	display: inline-block;
+	padding: 0.12rem 0.55rem;
+	border-radius: 999px;
+	background: var(--comsup-surface-2);
+	border: 1px solid var(--comsup-line);
+	font-size: 0.75rem;
+	color: var(--comsup-ink);
+	white-space: nowrap;
+}
+
+/* Sponsored badge — accent pill with a dot. */
+.comsup-badge--sponsored {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4em;
+	padding: 0.15rem 0.6rem;
+	background: rgba(124, 58, 237, 0.1);
+	color: var(--comsup-accent);
+	font-size: 0.72rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.comsup-badge__dot {
+	width: 0.45em;
+	height: 0.45em;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.comsup-card__row--sponsored {
+	margin-top: -0.1rem;
+}
+
+.comsup-table .comsup-badge--sponsored {
+	margin-left: 0.4em;
+	vertical-align: middle;
+}
+
+/* ---------- Links ---------- */
+.comsup-card__link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-weight: 600;
+	color: var(--comsup-primary);
+	text-decoration: none;
+}
+
+.comsup-card__link:hover,
+.comsup-card__link:focus {
+	color: var(--comsup-primary-600);
+	text-decoration: underline;
+}
+
+/* ---------- Table ---------- */
+.comsup-supporters--table-wrap {
+	overflow-x: auto;
+}
+
+.comsup-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.comsup-table th,
+.comsup-table td {
+	padding: 0.65rem 0.85rem;
+	text-align: left;
+	border-bottom: 1px solid var(--comsup-line);
+	vertical-align: top;
+}
+
+.comsup-table th {
+	font-weight: 700;
+	color: var(--comsup-navy);
+	background: var(--comsup-surface-2);
+	white-space: nowrap;
+}
+
+.comsup-table__photo-col {
+	width: 56px;
+}
+
+/* Visually hide but keep for screen readers. */
+.comsup-supporters .screen-reader-text {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	border: 0;
+}
+
+/* ---------- States ---------- */
+.comsup-supporters--error {
+	padding: 0.75rem 1rem;
+	border: 1px solid #f0c33c;
+	background: #fcf3d6;
+	border-radius: var(--comsup-radius);
+	color: #55450a;
+}
+
+.comsup-supporters--empty {
+	padding: 1rem 1.25rem;
+	border: 1px dashed var(--comsup-line);
+	border-radius: var(--comsup-radius);
+	color: var(--comsup-muted);
+	text-align: center;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+	.comsup-supporters--grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 600px) {
+	.comsup-supporters--grid {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.comsup-table thead {
+		display: none;
+	}
+
+	.comsup-table,
+	.comsup-table tbody,
+	.comsup-table tr,
+	.comsup-table td {
+		display: block;
+		width: 100%;
+	}
+
+	.comsup-table tr {
+		margin-bottom: 1rem;
+		border: 1px solid var(--comsup-line);
+		border-radius: 8px;
+		overflow: hidden;
+	}
+
+	.comsup-table td {
+		border-bottom: 1px solid var(--comsup-line);
+		padding-left: 40%;
+		position: relative;
+	}
+
+	.comsup-table td::before {
+		content: attr(data-label);
+		position: absolute;
+		left: 0.85rem;
+		top: 0.65rem;
+		width: 35%;
+		font-weight: 600;
+		color: var(--comsup-muted);
+	}
+}

@@ -1,0 +1,17 @@
+# Upstream repos cloned for reference only. Not ours to redistribute.
+reference/
+
+# Names the private Slack channel the roster came from, including its ID,
+# member count and stated purpose. Publishing it would disclose the source far
+# more explicitly than the directory does. Stays local.
+plugin/data/supporters-provenance.md
+
+# Internal Sol handoff doc. Records the privacy call, the data-confidence tiers
+# and the sourcing, including the private channel by name. Not part of the
+# public artifact.
+FUTURE_COREY.md
+
+# Superseded build output location; the published build now goes to docs/.
+dist/
+
+.DS_Store
