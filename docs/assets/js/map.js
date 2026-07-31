@@ -12,6 +12,10 @@
  * - A Reset control returns to the load-time view.
  * - Clicking a dot opens the person's popup and nothing else. It used to set
  *   the Country filter too, which was more surprising than useful.
+ * - The filter bar drives the dots. filters.js publishes the surviving record
+ *   indices on `comsup:filtered`; anything filtered out leaves the map. Narrowing
+ *   to one employer should leave one dot, because the point of the map is seeing
+ *   WHERE the survivors are, not reading their names off a list.
  */
 ( function () {
 	'use strict';
@@ -200,6 +204,7 @@
 
 		var layer = window.L.layerGroup().addTo( map );
 		var dots  = [];
+		var byIndex = {};
 
 		markers.forEach( function ( m ) {
 			var isCity = 'city' === m.precision;
@@ -216,6 +221,7 @@
 			dot.bindTooltip( m.name, { direction: 'top', offset: [ 0, -4 ] } );
 			dot.addTo( layer );
 			dots.push( dot );
+			byIndex[ m.i ] = dot;
 		} );
 
 		map.on( 'zoomend', function () {
@@ -224,6 +230,28 @@
 				d.setRadius( r );
 			} );
 		} );
+
+		// Keep the dots in step with the filter bar.
+		var wrap = el.closest ? el.closest( '.comsup-supporters-wrap' ) : null;
+		if ( wrap ) {
+			wrap.addEventListener( 'comsup:filtered', function ( e ) {
+				var detail  = e.detail || {};
+				var visible = {};
+				( detail.indices || [] ).forEach( function ( i ) {
+					visible[ i ] = true;
+				} );
+
+				Object.keys( byIndex ).forEach( function ( i ) {
+					var dot = byIndex[ i ];
+					var on  = ! detail.filtered || visible[ i ];
+					if ( on && ! layer.hasLayer( dot ) ) {
+						layer.addLayer( dot );
+					} else if ( ! on && layer.hasLayer( dot ) ) {
+						layer.removeLayer( dot );
+					}
+				} );
+			} );
+		}
 
 		addLegend( map );
 		addResetControl( map );

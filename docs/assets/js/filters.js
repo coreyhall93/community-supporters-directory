@@ -3,6 +3,11 @@
  *
  * Powers the filter bar (Role / Contribution / Employer / Language / Country).
  * Runs client-side on already-rendered markup, so it works on cached pages.
+ *
+ * Filtering drives the MAP as well as the list. Narrowing to one employer has to
+ * leave one dot on the map, not 74 - seeing the survivors in place is the whole
+ * reason the map exists. Each item carries data-index (its record index) and the
+ * visible set is published on a `comsup:filtered` event that map.js listens for.
  */
 ( function () {
 	'use strict';
@@ -45,6 +50,19 @@
 			if ( noResults ) {
 				noResults.hidden = visible !== 0;
 			}
+
+			// Tell the map which records survived, so its dots match the cards.
+			var shown = [];
+			items.forEach( function ( item ) {
+				if ( ! item.hidden ) {
+					shown.push( parseInt( item.getAttribute( 'data-index' ), 10 ) );
+				}
+			} );
+			var anyActive = !! ( crit.employer || crit.role || crit.contrib ||
+				crit.country || crit.language );
+			wrap.dispatchEvent( new CustomEvent( 'comsup:filtered', {
+				detail: { indices: shown, filtered: anyActive },
+			} ) );
 		}
 
 		selects.forEach( function ( s ) {

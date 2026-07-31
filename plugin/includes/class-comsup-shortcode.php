@@ -378,9 +378,10 @@ class COMSUP_Shortcode {
 	 *
 	 * @param array  $fields   Record fields.
 	 * @param string $employer The supporter's employer, '' when unknown.
+	 * @param int    $index    Record index, so the map can pair a dot to a card.
 	 * @return string
 	 */
-	private function filter_data_attrs( array $fields, $employer ) {
+	private function filter_data_attrs( array $fields, $employer, $index = 0 ) {
 		$langs = array();
 		foreach ( $this->record_languages( $fields ) as $lang ) {
 			$langs[] = strtolower( $lang );
@@ -394,12 +395,13 @@ class COMSUP_Shortcode {
 		$role_attr = empty( $roles ) ? '' : '|' . implode( '|', $roles ) . '|';
 
 		return sprintf(
-			'data-employer="%1$s" data-countries="%2$s" data-languages="%3$s" data-roles="%4$s" data-contrib="%5$s"',
+			'data-index="%6$s" data-employer="%1$s" data-countries="%2$s" data-languages="%3$s" data-roles="%4$s" data-contrib="%5$s"',
 			esc_attr( $this->employer_token( $employer ) ),
 			esc_attr( $country_attr ),
 			esc_attr( $lang_attr ),
 			esc_attr( $role_attr ),
-			esc_attr( $this->contribution_of( $fields ) )
+			esc_attr( $this->contribution_of( $fields ) ),
+			esc_attr( (string) $index )
 		);
 	}
 
@@ -667,10 +669,10 @@ class COMSUP_Shortcode {
 		}
 
 		$html = '<div class="comsup-supporters comsup-supporters--grid" style="--comsup-columns:' . esc_attr( $columns ) . ';">';
-		foreach ( $records as $record ) {
+		foreach ( $records as $index => $record ) {
 			$fields   = isset( $record['fields'] ) ? $record['fields'] : array();
 			$employer = $this->employer_of( $fields );
-			$html    .= '<article class="comsup-card" style="--comsup-rows:' . esc_attr( $rows ) . ';" ' . $this->filter_data_attrs( $fields, $employer ) . '>';
+			$html    .= '<article class="comsup-card" style="--comsup-rows:' . esc_attr( $rows ) . ';" ' . $this->filter_data_attrs( $fields, $employer, $index ) . '>';
 
 			if ( $show_photos ) {
 				$html .= $this->render_photo( $fields, $photo_size );
@@ -898,10 +900,10 @@ class COMSUP_Shortcode {
 		}
 		$html .= '</tr></thead><tbody>';
 
-		foreach ( $records as $record ) {
+		foreach ( $records as $index => $record ) {
 			$fields   = isset( $record['fields'] ) ? $record['fields'] : array();
 			$employer = $this->employer_of( $fields );
-			$html    .= '<tr ' . $this->filter_data_attrs( $fields, $employer ) . '>';
+			$html    .= '<tr ' . $this->filter_data_attrs( $fields, $employer, $index ) . '>';
 			if ( $show_photos ) {
 				$html .= '<td class="comsup-table__photo-col" data-label="' . esc_attr__( 'Photo', 'community-supporters' ) . '">' . $this->render_photo( $fields, 40, false ) . '</td>';
 			}
