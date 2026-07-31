@@ -176,8 +176,11 @@ def page(markup: str, count: int, mapped: int) -> str:
     <h1 class="page__title">Community Event &amp; Program Supporters</h1>
     <p class="page__intro">Where the people supporting Make WordPress community
       events and programs are based. One dot per person &mdash; zoom in to find
-      who is near you, or filter by employer, language or country. A hollow dot
-      means we only know their country, not their city.</p>
+      who is near you, or filter by role, contribution, employer, language or
+      country. Roles come from the official
+      <a href="https://make.wordpress.org/community/community-deputies/">Community
+      Team Supporters and Managers page</a>; sponsorships come from each
+      person&rsquo;s own Five for the Future pledge.</p>
     <p class="page__meta"><strong>{count} supporters</strong> in this pull{gap}
       &middot; first pass, {stamp} &middot; rough working data, not a verified roster</p>
   </header>
@@ -213,10 +216,17 @@ def main() -> None:
 
     sync_plugin(args.site)
 
+    # Count what the page will actually render: Active records only. Inactive
+    # records (people who left) stay in the data but never reach the page, so
+    # counting them here would trip the truncation guard with a false positive.
     count = run_wp(
         args.site,
         "$c = new COMSUP_Airtable_Client( COMSUP_Settings::get() );"
-        "$r = $c->get_records(); echo is_wp_error($r) ? 0 : count($r);",
+        "$r = $c->get_records(); $n = 0;"
+        "if ( ! is_wp_error($r) ) { foreach ($r as $rec) {"
+        "  $f = isset($rec['fields']) ? $rec['fields'] : array();"
+        "  if ( 'Active' === ( isset($f['Status']) ? $f['Status'] : '' ) ) { $n++; }"
+        "} } echo $n;",
     )
     # Count people who actually get a dot, which now means real coordinates —
     # a country alone no longer implies a marker.
@@ -226,6 +236,7 @@ def main() -> None:
         "$r = $c->get_records(); $n = 0;"
         "if ( ! is_wp_error($r) ) { foreach ($r as $rec) {"
         "  $f = isset($rec['fields']) ? $rec['fields'] : array();"
+        "  if ( 'Active' !== ( isset($f['Status']) ? $f['Status'] : '' ) ) { continue; }"
         "  $lat = isset($f['Latitude']) ? $f['Latitude'] : '';"
         "  $lng = isset($f['Longitude']) ? $f['Longitude'] : '';"
         "  if ( is_numeric($lat) && is_numeric($lng) ) { $n++; }"

@@ -106,6 +106,92 @@
 	color: var(--comsup-ink);
 }
 
+/* On-map key: what a solid vs hollow dot means, and how to zoom. */
+.comsup-map__legend {
+	background: rgba(255, 255, 255, 0.94);
+	border: 1px solid var(--comsup-line, #e5e9f2);
+	border-radius: 8px;
+	box-shadow: 0 1px 4px rgba(16, 24, 43, 0.12);
+	padding: 8px 11px;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #1e293b;
+	max-width: 250px;
+}
+
+.comsup-map__legend-title {
+	font-size: 10.5px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: #64748b;
+	margin-bottom: 4px;
+}
+
+.comsup-map__legend-row {
+	display: flex;
+	align-items: baseline;
+	gap: 7px;
+}
+
+.comsup-map__legend-row--hint {
+	margin-top: 5px;
+	padding-top: 5px;
+	border-top: 1px solid #e5e9f2;
+	color: #64748b;
+	font-size: 11.5px;
+}
+
+.comsup-map__legend-dot {
+	flex: none;
+	width: 11px;
+	height: 11px;
+	border-radius: 50%;
+	border: 1.5px solid #3858e9;
+	align-self: center;
+}
+
+.comsup-map__legend-dot--solid {
+	background: #3858e9;
+}
+
+.comsup-map__legend-dot--hollow {
+	background: #fff;
+}
+
+/* "Reset" control under the zoom buttons. */
+.comsup-map__reset a {
+	width: auto;
+	padding: 0 9px;
+	font-size: 12px;
+	font-weight: 600;
+	font-family: inherit;
+	color: #1e293b;
+}
+
+/* Hint shown when scrolling over the map without holding the modifier key. */
+.comsup-map__wheel-hint {
+	position: absolute;
+	inset: 0;
+	z-index: 900;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(16, 24, 43, 0.28);
+	color: #fff;
+	font-size: 15px;
+	font-weight: 600;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+	border-radius: inherit;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.25s ease;
+}
+
+.comsup-map__wheel-hint.is-visible {
+	opacity: 1;
+}
+
 /* ---------- Filter bar ---------- */
 .comsup-filters {
 	display: flex;
@@ -304,6 +390,33 @@
 
 .comsup-table .comsup-card__place {
 	font-size: 0.75rem;
+}
+
+/* Contribution chip under the place line: how this person's time is funded.
+   Grounded in checkable facts — a Five for the Future pledge on their own
+   profile, or their stated employer — never inferred. */
+.comsup-card__row--contrib {
+	margin-top: -0.1rem;
+}
+
+.comsup-chip {
+	display: inline-block;
+	padding: 0.14rem 0.55rem;
+	border-radius: 999px;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+}
+
+.comsup-chip--sponsored {
+	background: rgba(124, 58, 237, 0.1);
+	color: var(--comsup-accent);
+}
+
+.comsup-chip--volunteer {
+	background: var(--comsup-surface-2);
+	border: 1px solid var(--comsup-line);
+	color: var(--comsup-muted);
 }
 
 /* ---------- Badges & tags ---------- */

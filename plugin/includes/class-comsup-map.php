@@ -155,6 +155,7 @@ class COMSUP_Map {
 				'name'      => isset( $fields['Full Name'] ) ? (string) $fields['Full Name'] : '',
 				'role'      => isset( $fields['Role Type'] ) ? (string) $fields['Role Type'] : '',
 				'employer'  => isset( $fields[ self::EMPLOYER_FIELD ] ) ? (string) $fields[ self::EMPLOYER_FIELD ] : '',
+				'sponsor'   => isset( $fields['Sponsored By'] ) ? (string) $fields['Sponsored By'] : '',
 				'place'     => $place,
 				'country'   => $country,
 				'cid'       => self::resolve_id( $country ),

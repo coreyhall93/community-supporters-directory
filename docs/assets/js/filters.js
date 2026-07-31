@@ -1,34 +1,34 @@
 /**
  * Community Supporters Directory — front-end filtering.
  *
- * Powers the filter bar (Employer / Language / Country) and applies the
- * country chosen on the map (map.js dispatches a `comsup:setcountry` event).
+ * Powers the filter bar (Role / Contribution / Employer / Language / Country).
  * Runs client-side on already-rendered markup, so it works on cached pages.
  */
 ( function () {
 	'use strict';
 
 	function initWrap( wrap ) {
-		var selects       = wrap.querySelectorAll( '[data-comsup-filter]' );
-		var items         = wrap.querySelectorAll( '.comsup-card, .comsup-table tbody tr' );
-		var noResults     = wrap.querySelector( '.comsup-supporters__noresults' );
-		var countrySelect = wrap.querySelector( '[data-comsup-filter="country"]' );
-		var mapCountry    = ''; // Used when there is no country select.
+		var selects   = wrap.querySelectorAll( '[data-comsup-filter]' );
+		var items     = wrap.querySelectorAll( '.comsup-card, .comsup-table tbody tr' );
+		var noResults = wrap.querySelector( '.comsup-supporters__noresults' );
 
 		function apply() {
-			var crit = { employer: '', language: '', country: '' };
+			var crit = { employer: '', language: '', country: '', role: '', contrib: '' };
 			selects.forEach( function ( s ) {
 				crit[ s.getAttribute( 'data-comsup-filter' ) ] = s.value;
 			} );
-			if ( ! countrySelect ) {
-				crit.country = mapCountry;
-			}
 
 			var visible = 0;
 			items.forEach( function ( item ) {
 				var ok = true;
 				if ( crit.employer ) {
 					ok = ok && item.getAttribute( 'data-employer' ) === crit.employer;
+				}
+				if ( crit.role ) {
+					ok = ok && ( item.getAttribute( 'data-roles' ) || '' ).indexOf( '|' + crit.role + '|' ) !== -1;
+				}
+				if ( crit.contrib ) {
+					ok = ok && item.getAttribute( 'data-contrib' ) === crit.contrib;
 				}
 				if ( crit.country ) {
 					ok = ok && ( item.getAttribute( 'data-countries' ) || '' ).indexOf( '|' + crit.country + '|' ) !== -1;
@@ -49,17 +49,6 @@
 
 		selects.forEach( function ( s ) {
 			s.addEventListener( 'change', apply );
-		} );
-
-		// The map (map.js) filters by country through this event.
-		wrap.addEventListener( 'comsup:setcountry', function ( e ) {
-			var token = ( e.detail && e.detail.token ) || '';
-			if ( countrySelect ) {
-				countrySelect.value = token;
-			} else {
-				mapCountry = token;
-			}
-			apply();
 		} );
 
 		apply();

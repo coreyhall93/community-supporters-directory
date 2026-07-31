@@ -28,6 +28,7 @@ class COMSUP_Shortcode {
 		'Languages',
 		'WordPress profile',
 		'Employer',
+		'Sponsored By',
 	);
 
 	/**
@@ -292,6 +293,72 @@ class COMSUP_Shortcode {
 	}
 
 	/**
+	 * Which contribution bucket a supporter falls into, from checkable facts:
+	 *
+	 *  - 'a8c'       employer is Automattic (their community work is the day job)
+	 *  - 'sponsored' a Five for the Future pledge covers their time ("Sponsored By",
+	 *                parsed from the pledge block on their own .org profile)
+	 *  - 'volunteer' their .org profile was checked and shows no pledge
+	 *  - ''          no profile on file, so nothing could be checked
+	 *
+	 * Absence of a pledge is only meaningful when there was a profile to check,
+	 * which is why the unknown bucket exists instead of defaulting to volunteer.
+	 *
+	 * @param array $fields Record fields.
+	 * @return string
+	 */
+	private function contribution_of( array $fields ) {
+		$employer = $this->employer_of( $fields );
+		if ( 0 === strcasecmp( $employer, 'Automattic' ) ) {
+			return 'a8c';
+		}
+		$sponsor = isset( $fields['Sponsored By'] ) ? trim( (string) $fields['Sponsored By'] ) : '';
+		if ( '' !== $sponsor ) {
+			return 'sponsored';
+		}
+		$profile = isset( $fields['WordPress profile'] ) ? trim( (string) $fields['WordPress profile'] ) : '';
+		return '' !== $profile ? 'volunteer' : '';
+	}
+
+	/**
+	 * The chip shown under a supporter's name for their contribution bucket.
+	 *
+	 * @param string $bucket Bucket from contribution_of().
+	 * @return string HTML, '' when there is nothing worth saying.
+	 */
+	private function contribution_chip( $bucket ) {
+		if ( 'sponsored' === $bucket ) {
+			return '<span class="comsup-chip comsup-chip--sponsored">' . esc_html__( 'Sponsored contributor', 'community-supporters' ) . '</span>';
+		}
+		if ( 'volunteer' === $bucket ) {
+			return '<span class="comsup-chip comsup-chip--volunteer">' . esc_html__( 'Volunteer', 'community-supporters' ) . '</span>';
+		}
+		return '';
+	}
+
+	/**
+	 * Role tokens for a record (lowercased Role Type values).
+	 *
+	 * @param array $fields Record fields.
+	 * @return string[]
+	 */
+	private function record_roles( array $fields ) {
+		if ( ! isset( $fields['Role Type'] ) ) {
+			return array();
+		}
+		$value = $fields['Role Type'];
+		$items = is_array( $value ) ? $value : explode( ',', (string) $value );
+		$out   = array();
+		foreach ( $items as $item ) {
+			$item = strtolower( trim( $item ) );
+			if ( '' !== $item ) {
+				$out[] = $item;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * The list of languages for a record.
 	 *
 	 * @param array $fields Record fields.
@@ -323,11 +390,16 @@ class COMSUP_Shortcode {
 		$country_keys = array_keys( $this->country_tokens( $fields ) );
 		$country_attr = empty( $country_keys ) ? '' : '|' . implode( '|', $country_keys ) . '|';
 
+		$roles     = $this->record_roles( $fields );
+		$role_attr = empty( $roles ) ? '' : '|' . implode( '|', $roles ) . '|';
+
 		return sprintf(
-			'data-employer="%1$s" data-countries="%2$s" data-languages="%3$s"',
+			'data-employer="%1$s" data-countries="%2$s" data-languages="%3$s" data-roles="%4$s" data-contrib="%5$s"',
 			esc_attr( $this->employer_token( $employer ) ),
 			esc_attr( $country_attr ),
-			esc_attr( $lang_attr )
+			esc_attr( $lang_attr ),
+			esc_attr( $role_attr ),
+			esc_attr( $this->contribution_of( $fields ) )
 		);
 	}
 
@@ -371,6 +443,8 @@ class COMSUP_Shortcode {
 		$countries = array();
 		$languages = array();
 		$employers = array();
+		$roles     = array();
+		$contribs  = array();
 
 		foreach ( $records as $record ) {
 			$fields = isset( $record['fields'] ) ? $record['fields'] : array();
@@ -378,6 +452,15 @@ class COMSUP_Shortcode {
 			$employer = $this->employer_of( $fields );
 			if ( '' !== $employer ) {
 				$employers[ $this->employer_token( $employer ) ] = $employer;
+			}
+
+			foreach ( $this->record_roles( $fields ) as $role ) {
+				$roles[ $role ] = ucwords( $role );
+			}
+
+			$bucket = $this->contribution_of( $fields );
+			if ( '' !== $bucket ) {
+				$contribs[ $bucket ] = true;
 			}
 
 			foreach ( $this->country_tokens( $fields ) as $token => $label ) {
@@ -394,6 +477,39 @@ class COMSUP_Shortcode {
 		asort( $employers, SORT_NATURAL | SORT_FLAG_CASE );
 
 		$controls = '';
+
+		// Role filter — the official Community Team roles (Event Supporter,
+		// Program Supporter, Program Manager), straight from the data.
+		if ( count( $roles ) > 1 ) {
+			$role_order   = array( 'program manager', 'program supporter', 'event supporter' );
+			$role_options = array( '' => __( 'All roles', 'community-supporters' ) );
+			foreach ( $role_order as $key ) {
+				if ( isset( $roles[ $key ] ) ) {
+					$role_options[ $key ] = $roles[ $key ];
+					unset( $roles[ $key ] );
+				}
+			}
+			foreach ( $roles as $key => $label ) {
+				$role_options[ $key ] = $label;
+			}
+			$controls .= $this->filter_select( 'role', __( 'Role', 'community-supporters' ), $role_options );
+		}
+
+		// Contribution filter — how their time is funded, from checkable facts
+		// (Five for the Future pledges + stated employer).
+		if ( count( $contribs ) > 1 ) {
+			$contrib_options = array( '' => __( 'Everyone', 'community-supporters' ) );
+			if ( isset( $contribs['volunteer'] ) ) {
+				$contrib_options['volunteer'] = __( 'Volunteers', 'community-supporters' );
+			}
+			if ( isset( $contribs['sponsored'] ) ) {
+				$contrib_options['sponsored'] = __( 'Sponsored contributors', 'community-supporters' );
+			}
+			if ( isset( $contribs['a8c'] ) ) {
+				$contrib_options['a8c'] = __( 'Automattic employees', 'community-supporters' );
+			}
+			$controls .= $this->filter_select( 'contrib', __( 'Contribution', 'community-supporters' ), $contrib_options );
+		}
 
 		// Employer filter. Karen's question was "who do they work for", so the
 		// useful control is a list of employers, not a sponsored yes/no.
@@ -545,7 +661,7 @@ class COMSUP_Shortcode {
 		// field (empty placeholder when a value is missing), plus a photo slot
 		// and a place slot — so CSS subgrid can line the fields up on shared
 		// row tracks across the cards in each row.
-		$rows = count( $field_order ) + 1; // Fields + place slot.
+		$rows = count( $field_order ) + 2; // Fields + place slot + contribution chip slot.
 		if ( $show_photos ) {
 			$rows++;
 		}
@@ -578,6 +694,11 @@ class COMSUP_Shortcode {
 					$city = isset( $fields['City'] ) ? trim( (string) $fields['City'] ) : '';
 					$html .= '' !== $city
 						? '<div class="comsup-card__row comsup-card__row--place"><span class="comsup-card__place">' . esc_html( $city ) . '</span></div>'
+						: '<div class="comsup-card__row comsup-card__row--empty" aria-hidden="true"></div>';
+
+					$chip  = $this->contribution_chip( $this->contribution_of( $fields ) );
+					$html .= '' !== $chip
+						? '<div class="comsup-card__row comsup-card__row--contrib">' . $chip . '</div>'
 						: '<div class="comsup-card__row comsup-card__row--empty" aria-hidden="true"></div>';
 				}
 			}
