@@ -1,7 +1,7 @@
 /**
  * Community Supporters Directory — front-end filtering.
  *
- * Powers the filter bar (Sponsorship / Language / Country) and applies the
+ * Powers the filter bar (Employer / Language / Country) and applies the
  * country chosen on the map (map.js dispatches a `comsup:setcountry` event).
  * Runs client-side on already-rendered markup, so it works on cached pages.
  */
@@ -16,7 +16,7 @@
 		var mapCountry    = ''; // Used when there is no country select.
 
 		function apply() {
-			var crit = { sponsored: '', language: '', country: '' };
+			var crit = { employer: '', language: '', country: '' };
 			selects.forEach( function ( s ) {
 				crit[ s.getAttribute( 'data-comsup-filter' ) ] = s.value;
 			} );
@@ -27,8 +27,8 @@
 			var visible = 0;
 			items.forEach( function ( item ) {
 				var ok = true;
-				if ( crit.sponsored ) {
-					ok = ok && item.getAttribute( 'data-sponsored' ) === crit.sponsored;
+				if ( crit.employer ) {
+					ok = ok && item.getAttribute( 'data-employer' ) === crit.employer;
 				}
 				if ( crit.country ) {
 					ok = ok && ( item.getAttribute( 'data-countries' ) || '' ).indexOf( '|' + crit.country + '|' ) !== -1;

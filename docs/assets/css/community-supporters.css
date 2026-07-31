@@ -36,7 +36,8 @@
 	display: none !important;
 }
 
-/* ---------- Country map (Leaflet, matched to Education Programs Map) ---------- */
+/* ---------- Supporter map (Leaflet, matched to Education Programs Map) ----------
+   One dot per person, not one per country. See assets/js/map.js for why. */
 .comsup-map {
 	margin: 0 0 1.5rem;
 }
@@ -64,6 +65,45 @@
 	border-bottom: 1px solid var(--comsup-line);
 	padding-bottom: 4px;
 	margin-bottom: 4px;
+}
+
+/* Per-person popup: name, where, role, employer, profile link. */
+.comsup-pop {
+	display: grid;
+	gap: 1px;
+}
+
+.comsup-pop__place {
+	color: var(--comsup-ink);
+}
+
+.comsup-pop__place em {
+	color: var(--comsup-muted);
+	font-style: normal;
+}
+
+.comsup-pop__role,
+.comsup-pop__employer {
+	color: var(--comsup-muted);
+	font-size: 12px;
+}
+
+.comsup-pop__link {
+	margin-top: 5px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/* Hover label on a dot — the fast scan when you're hunting for who's nearby. */
+.comsup-map .leaflet-tooltip {
+	font-family: inherit;
+	font-size: 12px;
+	font-weight: 600;
+	padding: 3px 7px;
+	border: 1px solid var(--comsup-line);
+	border-radius: 5px;
+	box-shadow: 0 1px 3px rgba(16, 24, 43, 0.12);
+	color: var(--comsup-ink);
 }
 
 /* ---------- Filter bar ---------- */
@@ -149,15 +189,9 @@
 	border-color: #d5ddf5;
 }
 
-/* Sponsored supporters get the subtle highlight the ESS "medal" cards use. */
-.comsup-card--sponsored {
-	border-color: rgba(56, 88, 233, 0.35);
-	background: linear-gradient(180deg, #f7f9ff 0%, #ffffff 55%);
-}
-
 /*
  * Where subgrid is supported, lay each card onto shared row tracks so the same
- * detail field (Country, Languages, sponsor, link…) sits at the same level in
+ * detail field (Country, Languages, employer, link…) sits at the same level in
  * every card of a row. Falls back to the plain flex column above otherwise.
  */
 @supports (grid-template-rows: subgrid) {
@@ -255,6 +289,23 @@
 	margin-top: 0.15rem;
 }
 
+/* City under the name. This directory gets used to find the nearest person,
+   so where someone is sits directly under who they are. */
+.comsup-card__row--place {
+	margin-top: -0.15rem;
+}
+
+.comsup-card__place {
+	display: block;
+	font-size: 0.78rem;
+	line-height: 1.4;
+	color: var(--comsup-muted);
+}
+
+.comsup-table .comsup-card__place {
+	font-size: 0.75rem;
+}
+
 /* ---------- Badges & tags ---------- */
 /* Country badge — soft primary pill. */
 .comsup-badge {
@@ -284,36 +335,6 @@
 	font-size: 0.75rem;
 	color: var(--comsup-ink);
 	white-space: nowrap;
-}
-
-/* Sponsored badge — accent pill with a dot. */
-.comsup-badge--sponsored {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.4em;
-	padding: 0.15rem 0.6rem;
-	background: rgba(124, 58, 237, 0.1);
-	color: var(--comsup-accent);
-	font-size: 0.72rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-}
-
-.comsup-badge__dot {
-	width: 0.45em;
-	height: 0.45em;
-	border-radius: 50%;
-	background: currentColor;
-}
-
-.comsup-card__row--sponsored {
-	margin-top: -0.1rem;
-}
-
-.comsup-table .comsup-badge--sponsored {
-	margin-left: 0.4em;
-	vertical-align: middle;
 }
 
 /* ---------- Links ---------- */

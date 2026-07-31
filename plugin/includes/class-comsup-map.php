@@ -10,18 +10,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Builds a Leaflet map of the countries supporters come from, styled and behaving
- * like the Education Programs Map plugin (CARTO Positron basemap, blue circle
- * markers scaled by count, popups, native zoom/pan) for a consistent site feel.
+ * Builds a Leaflet map with **one dot per supporter**, placed at their own
+ * location rather than aggregated into a per-country blob.
  *
- * Country data (name aliases, labels, and representative lat/lng points) is
- * bundled from Natural Earth (public domain). Only the CARTO map tiles are
- * fetched at runtime, by the visitor's browser — same as the Programs map.
+ * The point of this map is "who is near me" — someone in South Carolina looking
+ * for the nearest person needs to see individuals in relation to each other, so
+ * an aggregated count-scaled country circle actively gets in the way. Dots are
+ * modest and resize with zoom instead of staying large.
+ *
+ * Placement honesty: a dot is solid when we resolved a self-reported city, and
+ * hollow when we only knew the country and fell back to its centroid. Country
+ * data (aliases, labels, representative points) is bundled from Natural Earth
+ * (public domain). Only the CARTO map tiles are fetched at runtime, by the
+ * visitor's browser — same as the Programs map.
  */
 class COMSUP_Map {
 
-	const COUNTRY_FIELD = 'Country';
-	const MAP_HEIGHT    = '520px';
+	const COUNTRY_FIELD  = 'Country';
+	const EMPLOYER_FIELD = 'Employer';
+	const MAP_HEIGHT     = '560px';
 
 	/**
 	 * Cached country data ([labels, aliases, latlng]).
@@ -117,21 +124,44 @@ class COMSUP_Map {
 	 * @return string HTML, or '' if there's nothing to plot.
 	 */
 	public static function render( array $records ) {
-		$data    = self::data();
-		$latlng  = isset( $data['latlng'] ) ? $data['latlng'] : array();
-		$counts  = self::country_counts( $records );
 		$markers = array();
 
-		foreach ( $counts as $id => $count ) {
-			if ( ! isset( $latlng[ $id ] ) ) {
+		foreach ( $records as $index => $record ) {
+			$fields = isset( $record['fields'] ) ? $record['fields'] : array();
+
+			$lat = isset( $fields['Latitude'] ) ? $fields['Latitude'] : '';
+			$lng = isset( $fields['Longitude'] ) ? $fields['Longitude'] : '';
+			if ( '' === $lat || '' === $lng || ! is_numeric( $lat ) || ! is_numeric( $lng ) ) {
 				continue;
 			}
+
+			$country = isset( $fields[ self::COUNTRY_FIELD ] ) ? (string) $fields[ self::COUNTRY_FIELD ] : '';
+			$city    = isset( $fields['City'] ) ? (string) $fields['City'] : '';
+
+			// "city" means we resolved a self-reported city string to a point.
+			// "country" means we only knew the country, so the dot sits on the
+			// country's centroid — shown hollow so it never reads as precise.
+			$precision = isset( $fields['Location Precision'] ) ? (string) $fields['Location Precision'] : '';
+
+			// Self-reported city strings often already carry the country
+			// ("Mukono - Uganda"), so only append it when it isn't in there.
+			$place = $city;
+			if ( '' !== $country && ( '' === $city || false === stripos( $city, $country ) ) ) {
+				$place = trim( $city . ( '' !== $city ? ', ' : '' ) . $country );
+			}
+
 			$markers[] = array(
-				'id'    => $id,
-				'name'  => self::label( $id ),
-				'count' => $count,
-				'lat'   => (float) $latlng[ $id ][0],
-				'lng'   => (float) $latlng[ $id ][1],
+				'i'         => (int) $index,
+				'name'      => isset( $fields['Full Name'] ) ? (string) $fields['Full Name'] : '',
+				'role'      => isset( $fields['Role Type'] ) ? (string) $fields['Role Type'] : '',
+				'employer'  => isset( $fields[ self::EMPLOYER_FIELD ] ) ? (string) $fields[ self::EMPLOYER_FIELD ] : '',
+				'place'     => $place,
+				'country'   => $country,
+				'cid'       => self::resolve_id( $country ),
+				'profile'   => isset( $fields['WordPress profile'] ) ? (string) $fields['WordPress profile'] : '',
+				'precision' => 'city' === $precision ? 'city' : 'country',
+				'lat'       => (float) $lat,
+				'lng'       => (float) $lng,
 			);
 		}
 
@@ -151,31 +181,4 @@ class COMSUP_Map {
 		);
 	}
 
-	/**
-	 * Tally supporters per country id, splitting multi-country values.
-	 *
-	 * @param array $records Records.
-	 * @return array id => count
-	 */
-	private static function country_counts( array $records ) {
-		$counts = array();
-
-		foreach ( $records as $record ) {
-			$fields = isset( $record['fields'] ) ? $record['fields'] : array();
-			if ( ! isset( $fields[ self::COUNTRY_FIELD ] ) ) {
-				continue;
-			}
-
-			$raw = is_array( $fields[ self::COUNTRY_FIELD ] ) ? implode( ',', $fields[ self::COUNTRY_FIELD ] ) : (string) $fields[ self::COUNTRY_FIELD ];
-			foreach ( explode( ',', $raw ) as $piece ) {
-				$cid = self::resolve_id( $piece );
-				if ( '' === $cid ) {
-					continue;
-				}
-				$counts[ $cid ] = isset( $counts[ $cid ] ) ? $counts[ $cid ] + 1 : 1;
-			}
-		}
-
-		return $counts;
-	}
 }

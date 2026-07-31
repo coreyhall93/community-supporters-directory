@@ -101,8 +101,7 @@ def page(markup: str, count: int, mapped: int) -> str:
     # half the first pull has no country yet, and a map quietly showing less
     # than the headline number reads as a bug or, worse, goes unnoticed.
     gap = (
-        f' &middot; <strong>{mapped}</strong> of them have a country recorded'
-        f" and appear on the map"
+        f' &middot; <strong>{mapped}</strong> of them are placed on the map'
         if mapped < count
         else ""
     )
@@ -176,8 +175,9 @@ def page(markup: str, count: int, mapped: int) -> str:
   <header class="page__head">
     <h1 class="page__title">Community Event &amp; Program Supporters</h1>
     <p class="page__intro">Where the people supporting Make WordPress community
-      events and programs are based, and what they can help with. Filter by
-      sponsorship, language or country, or click a country on the map.</p>
+      events and programs are based. One dot per person &mdash; zoom in to find
+      who is near you, or filter by employer, language or country. A hollow dot
+      means we only know their country, not their city.</p>
     <p class="page__meta"><strong>{count} supporters</strong> in this pull{gap}
       &middot; first pass, {stamp} &middot; rough working data, not a verified roster</p>
   </header>
@@ -218,15 +218,17 @@ def main() -> None:
         "$c = new COMSUP_Airtable_Client( COMSUP_Settings::get() );"
         "$r = $c->get_records(); echo is_wp_error($r) ? 0 : count($r);",
     )
+    # Count people who actually get a dot, which now means real coordinates —
+    # a country alone no longer implies a marker.
     mapped = run_wp(
         args.site,
         "$c = new COMSUP_Airtable_Client( COMSUP_Settings::get() );"
         "$r = $c->get_records(); $n = 0;"
         "if ( ! is_wp_error($r) ) { foreach ($r as $rec) {"
         "  $f = isset($rec['fields']) ? $rec['fields'] : array();"
-        "  $v = isset($f['Country']) ? $f['Country'] : '';"
-        "  if ( is_array($v) ) { $v = implode(',', $v); }"
-        "  if ( '' !== trim( (string) $v ) ) { $n++; }"
+        "  $lat = isset($f['Latitude']) ? $f['Latitude'] : '';"
+        "  $lng = isset($f['Longitude']) ? $f['Longitude'] : '';"
+        "  if ( is_numeric($lat) && is_numeric($lng) ) { $n++; }"
         "} } echo $n;",
     )
     markup = run_wp_to_file(args.site, 'do_shortcode("[community_supporters]")')

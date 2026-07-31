@@ -26,7 +26,7 @@
 		description: __( 'Display the supporter directory from Airtable as a card grid or table.', 'community-supporters' ),
 		icon: 'groups',
 		category: 'widgets',
-		keywords: [ 'airtable', 'supporters', 'sponsored' ],
+		keywords: [ 'airtable', 'supporters', 'map', 'community' ],
 		supports: {
 			html: false,
 			align: [ 'wide', 'full' ]

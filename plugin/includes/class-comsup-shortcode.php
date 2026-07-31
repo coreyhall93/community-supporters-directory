@@ -27,7 +27,7 @@ class COMSUP_Shortcode {
 		'Country',
 		'Languages',
 		'WordPress profile',
-		'Sponsor Company Name',
+		'Employer',
 	);
 
 	/**
@@ -45,11 +45,17 @@ class COMSUP_Shortcode {
 	const STATUS_ACTIVE = 'Active';
 
 	/**
-	 * Supporters with a value in this field are flagged as sponsored (badge).
+	 * Who the supporter works for. Powers the Employer filter.
+	 *
+	 * Named "Sponsor Company Name" until 2026-07-31. That field conflated an
+	 * employer with a Five-for-the-Future sponsor, so an Automattic-sponsored
+	 * contributor who works somewhere else read as Automattic staff, and every
+	 * filled row got a "Sponsored" badge that said nothing useful. The question
+	 * being answered is "who do they work for", so the field says that.
 	 *
 	 * @var string
 	 */
-	const SPONSOR_FIELD = 'Sponsor Company Name';
+	const EMPLOYER_FIELD = 'Employer';
 
 	/**
 	 * Field used for the Country filter.
@@ -165,7 +171,7 @@ class COMSUP_Shortcode {
 		}
 
 		// Fetch every field (not just the displayed ones) so we can filter on
-		// Status and detect sponsorship regardless of which fields are shown.
+		// Status, employer and location regardless of which fields are shown.
 		$records = $client->get_records(
 			array(
 				'view'        => sanitize_text_field( $atts['view'] ),
@@ -259,29 +265,30 @@ class COMSUP_Shortcode {
 	}
 
 	/**
-	 * Whether a record has a sponsor (non-empty Sponsor Company Name).
+	 * The supporter's employer, or '' when unknown.
 	 *
 	 * @param array $fields Record fields.
-	 * @return bool
+	 * @return string
 	 */
-	private function is_sponsored( array $fields ) {
-		if ( ! isset( $fields[ self::SPONSOR_FIELD ] ) ) {
-			return false;
+	private function employer_of( array $fields ) {
+		if ( ! isset( $fields[ self::EMPLOYER_FIELD ] ) ) {
+			return '';
 		}
-		$value = $fields[ self::SPONSOR_FIELD ];
+		$value = $fields[ self::EMPLOYER_FIELD ];
 		if ( is_array( $value ) ) {
-			return ! empty( array_filter( $value, 'strlen' ) );
+			$value = implode( ', ', array_filter( $value, 'strlen' ) );
 		}
-		return '' !== trim( (string) $value );
+		return trim( (string) $value );
 	}
 
 	/**
-	 * The small "Sponsored" badge shown on sponsored supporters.
+	 * A filter token for an employer name, so the select and the cards agree.
 	 *
+	 * @param string $employer Employer name.
 	 * @return string
 	 */
-	private function sponsored_badge() {
-		return '<span class="comsup-badge comsup-badge--sponsored"><span class="comsup-badge__dot" aria-hidden="true"></span>' . esc_html__( 'Sponsored', 'community-supporters' ) . '</span>';
+	private function employer_token( $employer ) {
+		return strtolower( trim( (string) $employer ) );
 	}
 
 	/**
@@ -302,11 +309,11 @@ class COMSUP_Shortcode {
 	/**
 	 * Build the data-* attributes used by the client-side filter.
 	 *
-	 * @param array $fields    Record fields.
-	 * @param bool  $sponsored Whether the supporter is sponsored.
+	 * @param array  $fields   Record fields.
+	 * @param string $employer The supporter's employer, '' when unknown.
 	 * @return string
 	 */
-	private function filter_data_attrs( array $fields, $sponsored ) {
+	private function filter_data_attrs( array $fields, $employer ) {
 		$langs = array();
 		foreach ( $this->record_languages( $fields ) as $lang ) {
 			$langs[] = strtolower( $lang );
@@ -317,8 +324,8 @@ class COMSUP_Shortcode {
 		$country_attr = empty( $country_keys ) ? '' : '|' . implode( '|', $country_keys ) . '|';
 
 		return sprintf(
-			'data-sponsored="%1$s" data-countries="%2$s" data-languages="%3$s"',
-			$sponsored ? '1' : '0',
+			'data-employer="%1$s" data-countries="%2$s" data-languages="%3$s"',
+			esc_attr( $this->employer_token( $employer ) ),
 			esc_attr( $country_attr ),
 			esc_attr( $lang_attr )
 		);
@@ -355,24 +362,22 @@ class COMSUP_Shortcode {
 	}
 
 	/**
-	 * Render the interactive filter bar (Sponsored / Language / Country).
+	 * Render the interactive filter bar (Employer / Language / Country).
 	 *
 	 * @param array $records Records being displayed.
 	 * @return string
 	 */
 	private function render_filter_bar( array $records ) {
-		$countries    = array();
-		$languages    = array();
-		$has_sponsored = false;
-		$has_plain     = false;
+		$countries = array();
+		$languages = array();
+		$employers = array();
 
 		foreach ( $records as $record ) {
 			$fields = isset( $record['fields'] ) ? $record['fields'] : array();
 
-			if ( $this->is_sponsored( $fields ) ) {
-				$has_sponsored = true;
-			} else {
-				$has_plain = true;
+			$employer = $this->employer_of( $fields );
+			if ( '' !== $employer ) {
+				$employers[ $this->employer_token( $employer ) ] = $employer;
 			}
 
 			foreach ( $this->country_tokens( $fields ) as $token => $label ) {
@@ -386,20 +391,18 @@ class COMSUP_Shortcode {
 
 		asort( $countries, SORT_NATURAL | SORT_FLAG_CASE );
 		asort( $languages, SORT_NATURAL | SORT_FLAG_CASE );
+		asort( $employers, SORT_NATURAL | SORT_FLAG_CASE );
 
 		$controls = '';
 
-		// Sponsored filter — only when there's a mix to choose between.
-		if ( $has_sponsored && $has_plain ) {
-			$controls .= $this->filter_select(
-				'sponsored',
-				__( 'Sponsorship', 'community-supporters' ),
-				array(
-					''  => __( 'All supporters', 'community-supporters' ),
-					'1' => __( 'Sponsored', 'community-supporters' ),
-					'0' => __( 'Not sponsored', 'community-supporters' ),
-				)
-			);
+		// Employer filter. Karen's question was "who do they work for", so the
+		// useful control is a list of employers, not a sponsored yes/no.
+		if ( count( $employers ) > 1 ) {
+			$employer_options = array( '' => __( 'All employers', 'community-supporters' ) );
+			foreach ( $employers as $key => $label ) {
+				$employer_options[ $key ] = $label;
+			}
+			$controls .= $this->filter_select( 'employer', __( 'Employer', 'community-supporters' ), $employer_options );
 		}
 
 		if ( count( $languages ) > 1 ) {
@@ -428,7 +431,7 @@ class COMSUP_Shortcode {
 	/**
 	 * Render one labelled filter <select>.
 	 *
-	 * @param string $key     Filter key (sponsored|language|country).
+	 * @param string $key     Filter key (employer|language|country).
 	 * @param string $label   Visible label.
 	 * @param array  $options value => label pairs.
 	 * @return string
@@ -540,18 +543,18 @@ class COMSUP_Shortcode {
 
 		// Every card renders the same fixed set of vertical slots — one per
 		// field (empty placeholder when a value is missing), plus a photo slot
-		// and a sponsored-badge slot — so CSS subgrid can line the fields up
-		// on shared row tracks across the cards in each row.
-		$rows = count( $field_order ) + 1; // Fields + sponsored-badge slot.
+		// and a place slot — so CSS subgrid can line the fields up on shared
+		// row tracks across the cards in each row.
+		$rows = count( $field_order ) + 1; // Fields + place slot.
 		if ( $show_photos ) {
 			$rows++;
 		}
 
 		$html = '<div class="comsup-supporters comsup-supporters--grid" style="--comsup-columns:' . esc_attr( $columns ) . ';">';
 		foreach ( $records as $record ) {
-			$fields    = isset( $record['fields'] ) ? $record['fields'] : array();
-			$sponsored = $this->is_sponsored( $fields );
-			$html     .= '<article class="comsup-card' . ( $sponsored ? ' comsup-card--sponsored' : '' ) . '" style="--comsup-rows:' . esc_attr( $rows ) . ';" ' . $this->filter_data_attrs( $fields, $sponsored ) . '>';
+			$fields   = isset( $record['fields'] ) ? $record['fields'] : array();
+			$employer = $this->employer_of( $fields );
+			$html    .= '<article class="comsup-card" style="--comsup-rows:' . esc_attr( $rows ) . ';" ' . $this->filter_data_attrs( $fields, $employer ) . '>';
 
 			if ( $show_photos ) {
 				$html .= $this->render_photo( $fields, $photo_size );
@@ -567,12 +570,14 @@ class COMSUP_Shortcode {
 					$html .= $this->render_card_field( $name, $value, $role );
 				}
 
-				// Reserve a slot for the "Sponsored" badge under the name in
-				// every card (empty when the supporter isn't sponsored) so the
-				// following fields stay aligned across cards.
+				// Under the name, show where they actually are. This directory
+				// is used to find the nearest person, so the city earns that
+				// slot far more than a badge does. Empty placeholder when we
+				// don't know, to keep the rows aligned across cards.
 				if ( 'title' === $role ) {
-					$html .= $sponsored
-						? '<div class="comsup-card__row comsup-card__row--sponsored">' . $this->sponsored_badge() . '</div>'
+					$city = isset( $fields['City'] ) ? trim( (string) $fields['City'] ) : '';
+					$html .= '' !== $city
+						? '<div class="comsup-card__row comsup-card__row--place"><span class="comsup-card__place">' . esc_html( $city ) . '</span></div>'
 						: '<div class="comsup-card__row comsup-card__row--empty" aria-hidden="true"></div>';
 				}
 			}
@@ -773,9 +778,9 @@ class COMSUP_Shortcode {
 		$html .= '</tr></thead><tbody>';
 
 		foreach ( $records as $record ) {
-			$fields    = isset( $record['fields'] ) ? $record['fields'] : array();
-			$sponsored = $this->is_sponsored( $fields );
-			$html     .= '<tr ' . $this->filter_data_attrs( $fields, $sponsored ) . '>';
+			$fields   = isset( $record['fields'] ) ? $record['fields'] : array();
+			$employer = $this->employer_of( $fields );
+			$html    .= '<tr ' . $this->filter_data_attrs( $fields, $employer ) . '>';
 			if ( $show_photos ) {
 				$html .= '<td class="comsup-table__photo-col" data-label="' . esc_attr__( 'Photo', 'community-supporters' ) . '">' . $this->render_photo( $fields, 40, false ) . '</td>';
 			}
@@ -784,9 +789,12 @@ class COMSUP_Shortcode {
 				$role  = $this->field_role( $name );
 				$cell  = $this->render_table_cell( $value, $role );
 
-				// Append the "Sponsored" badge to the supporter's name cell.
-				if ( 'title' === $role && $sponsored ) {
-					$cell .= ' ' . $this->sponsored_badge();
+				// Show the city under the name, same as the card layout.
+				if ( 'title' === $role ) {
+					$city = isset( $fields['City'] ) ? trim( (string) $fields['City'] ) : '';
+					if ( '' !== $city ) {
+						$cell .= '<span class="comsup-card__place">' . esc_html( $city ) . '</span>';
+					}
 				}
 				$html .= '<td data-label="' . esc_attr( $name ) . '">' . $cell . '</td>';
 			}
