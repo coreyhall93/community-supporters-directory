@@ -244,6 +244,22 @@ def main() -> None:
 
     out = args.out
     if out.exists():
+        # docs/ is build output and gets wiped wholesale. On 2026-07-31 that
+        # silently deleted DATA-PULL-METHOD.md, a hand-written handoff doc some-
+        # one had parked here. Anything not produced by this script is somebody's
+        # work, so refuse rather than destroy it. (docs/ is also what Pages
+        # serves, so a stray doc here would be published as well as deleted.)
+        expected = {"index.html", ".nojekyll", ".DS_Store"} | {
+            Path(rel).parts[0] for rel in ASSETS
+        }
+        strays = sorted(p.name for p in out.iterdir() if p.name not in expected)
+        if strays:
+            sys.exit(
+                f"Refusing to wipe {out}: it holds files this build did not "
+                f"create: {', '.join(strays)}.\n"
+                "docs/ is disposable build output. Move those elsewhere (the "
+                "project root, git-ignored if internal) and re-run."
+            )
         shutil.rmtree(out)
     out.mkdir(parents=True)
 

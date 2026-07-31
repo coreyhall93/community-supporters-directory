@@ -11,6 +11,12 @@ plugin/data/supporters-provenance.md
 # public artifact.
 FUTURE_COREY.md
 
+# The data-half handoff doc. Names the private source channel and both channel
+# IDs, so it must never be published. It lived at docs/DATA-PULL-METHOD.md until
+# 2026-07-31, which was wrong twice: the build rmtree's docs/ on every run (it
+# deleted the file once), and docs/ is what GitHub Pages serves.
+DATA-PULL-METHOD.md
+
 # Superseded build output location; the published build now goes to docs/.
 dist/
 
